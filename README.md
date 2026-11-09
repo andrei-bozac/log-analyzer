@@ -1,5 +1,15 @@
 # Log Analyzer
 
+![Java](https://img.shields.io/badge/Java-21-ED8B00)
+![Jakarta Servlet](https://img.shields.io/badge/Jakarta%20Servlet-6.0-blue)
+![Maven](https://img.shields.io/badge/Maven-multi--module-C71A36)
+![Tomcat](https://img.shields.io/badge/Apache%20Tomcat-11.0.18-F8DC75)
+![Jetty](https://img.shields.io/badge/Eclipse%20Jetty-12.1.14-1F6FB5)
+![WildFly](https://img.shields.io/badge/WildFly-42.0.0.Final-C4262E)
+![Gson](https://img.shields.io/badge/Gson-2.13.2-4285F4)
+![HTML5, CSS3, JavaScript](https://img.shields.io/badge/HTML5%20%7C%20CSS3%20%7C%20JavaScript-frontend-555555)
+![PowerShell](https://img.shields.io/badge/PowerShell-scripts-5391FE)
+
 A distributed web access log analyzer built with Jakarta Servlets and deployed
 across three different servlet containers: Apache Tomcat, Eclipse Jetty and WildFly.
 
@@ -20,10 +30,10 @@ exchange JSON, in the manner of microservices. Each service runs in a different 
 
 - Upload of access logs in Common Log Format or Combined Log Format (`.log` or `.txt`, up to 10 MB)
 - Four detection rules:
-    - **Brute force**: many failed authentications (HTTP 401) from one address within a time window
-    - **Scanning**: many requests for non-existent pages (HTTP 404) from one address within a time window
-    - **Attack patterns**: path traversal, SQL injection and cross-site scripting signatures in request URLs
-    - **High volume**: an address that sends far more requests than the typical address (median based)
+  - **Brute force**: many failed authentications (HTTP 401) from one address within a time window
+  - **Scanning**: many requests for non-existent pages (HTTP 404) from one address within a time window
+  - **Attack patterns**: path traversal, SQL injection and cross-site scripting signatures in request URLs
+  - **High volume**: an address that sends far more requests than the typical address (median based)
 - Alert severity levels (LOW, MEDIUM, HIGH)
 - Configurable detection thresholds from the user interface
 - Traffic statistics: requests per hour, status code distribution, most active addresses
@@ -31,8 +41,6 @@ exchange JSON, in the manner of microservices. Each service runs in a different 
 - Live status indicators for the three services
 
 ## Architecture
-
-![Architecture diagram](docs/arhitectura.png)
 
 | Service  | Container            | Port | Context path | Responsibility                                   |
 |----------|----------------------|------|--------------|--------------------------------------------------|
@@ -42,14 +50,19 @@ exchange JSON, in the manner of microservices. Each service runs in a different 
 
 The gateway is the only entry point. The parser and the detector never call each other.
 
-Request flow:
+Communication between the components, in order:
 
-1. The browser sends the file and the thresholds to the gateway (`multipart/form-data`).
-2. The gateway validates the request and sends the file content to the parser (`text/plain`).
-3. The parser returns the parsed events and the number of skipped lines (JSON).
-4. The gateway sends the events and the thresholds to the detector (JSON).
-5. The detector returns the alerts and the statistics (JSON).
-6. The gateway combines the results and returns them to the browser.
+```
+(1) Browser  --> Gateway   file and thresholds            multipart/form-data
+(2) Gateway  --> Parser    log text                       text/plain
+(3) Gateway  <-- Parser    events and skipped lines       JSON
+(4) Gateway  --> Detector  events and thresholds          JSON
+(5) Gateway  <-- Detector  alerts and statistics          JSON
+(6) Browser  <-- Gateway   combined result                JSON
+```
+
+The gateway validates the request, calls the parser, passes the resulting events to the
+detector, and returns a single combined response to the browser.
 
 ## Technology
 
@@ -108,24 +121,24 @@ To build only, run `mvn clean package`. This produces `gateway.war`, `parser.war
 
 Default thresholds:
 
-| Rule        | Threshold          | Window     |
-|-------------|--------------------|------------|
-| Brute force | 10 failed requests | 60 seconds |
-| Scanning    | 20 not-found requests | 60 seconds |
-| High volume | at least 100 requests and 5 times the median | whole file |
+| Rule        | Threshold                                     | Window     |
+|-------------|-----------------------------------------------|------------|
+| Brute force | 10 failed requests                            | 60 seconds |
+| Scanning    | 20 not-found requests                         | 60 seconds |
+| High volume | at least 100 requests and 5 times the median  | whole file |
 
 Alert severity grows with the ratio between the observed count and the threshold.
 
 ## HTTP interface
 
-| Method and path               | Description                                      |
-|-------------------------------|--------------------------------------------------|
-| `POST /gateway/api/analyze`   | Analyze an uploaded log (multipart: `file` and six optional threshold fields) |
-| `GET  /gateway/api/status`    | Availability of the parser and the detector      |
-| `GET  /gateway/api/sample`    | The bundled sample log                           |
-| `POST /parser/parse`          | Parse a log (`text/plain`), internal             |
-| `POST /detector/detect`       | Run the detection rules (JSON), internal         |
-| `GET  /{service}/health`      | Health check of each service                     |
+| Method and path               | Description                                                                    |
+|-------------------------------|--------------------------------------------------------------------------------|
+| `POST /gateway/api/analyze`   | Analyze an uploaded log (multipart: `file` and six optional threshold fields)  |
+| `GET  /gateway/api/status`    | Availability of the parser and the detector                                    |
+| `GET  /gateway/api/sample`    | The bundled sample log                                                         |
+| `POST /parser/parse`          | Parse a log (`text/plain`), internal                                           |
+| `POST /detector/detect`       | Run the detection rules (JSON), internal                                       |
+| `GET  /{service}/health`      | Health check of each service                                                   |
 
 Example:
 
@@ -168,7 +181,7 @@ log-analyzer/
   parser-jetty/      Jetty module: log parser
   detector-wildfly/  WildFly module: detection rules and statistics
   tools/             Start, stop and redeploy scripts, sample log generator
-  docs/              Documentation and diagrams
+  docs/              Project documentation
   pom.xml            Parent Maven project
 ```
 
