@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Log Analyzer</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/app.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+    <div class="brand">log-analyzer <span class="brand-sub">Access Log Analyzer</span></div>
+    <ul class="services" aria-label="Starea serviciilor">
+        <li id="svc-gateway" data-state="unknown">
+            <span class="svc-name">gateway</span>
+            <span class="svc-server"></span>
+            <span class="svc-state">—</span>
+        </li>
+        <li id="svc-parser" data-state="unknown">
+            <span class="svc-name">parser</span>
+            <span class="svc-server"></span>
+            <span class="svc-state">—</span>
+        </li>
+        <li id="svc-detector" data-state="unknown">
+            <span class="svc-name">detector</span>
+            <span class="svc-server"></span>
+            <span class="svc-state">—</span>
+        </li>
+    </ul>
+</header>
+
+<main>
+    <section class="panel" aria-labelledby="upload-title">
+        <h2 id="upload-title" class="panel-title">Fișier de log</h2>
+        <form id="upload-form" novalidate>
+            <div class="upload-row">
+                <label class="sr-only" for="file-input">Alege fișierul de log</label>
+                <input type="file" id="file-input" accept=".log,.txt">
+                <button type="submit" id="analyze-btn" class="btn btn-primary">Analizează</button>
+                <button type="button" id="sample-btn" class="btn">Folosește fișierul de probă</button>
+            </div>
+            <details class="thresholds">
+                <summary>Praguri de detecție</summary>
+                <div class="thresholds-grid">
+                    <label>Brute-force: încercări
+                        <input type="number" id="th-bf" name="bruteForceThreshold" value="10" min="1" max="100000" step="1">
+                    </label>
+                    <label>Brute-force: fereastră (s)
+                        <input type="number" id="th-bfw" name="bruteForceWindowSeconds" value="60" min="1" max="86400" step="1">
+                    </label>
+                    <label>Scanare: cereri 404
+                        <input type="number" id="th-sc" name="scanThreshold" value="20" min="1" max="100000" step="1">
+                    </label>
+                    <label>Scanare: fereastră (s)
+                        <input type="number" id="th-scw" name="scanWindowSeconds" value="60" min="1" max="86400" step="1">
+                    </label>
+                    <label>Volum: minim cereri
+                        <input type="number" id="th-vm" name="highVolumeMinRequests" value="100" min="1" max="100000" step="1">
+                    </label>
+                    <label>Volum: factor față de mediană
+                        <input type="number" id="th-vf" name="highVolumeFactor" value="5" min="1" max="100" step="1">
+                    </label>
+                </div>
+                <button type="reset" id="th-reset" class="secondary">Resetează la valorile implicite</button>
+            </details>
+        </form>
+        <p class="hint">Common / Combined Log Format · fișiere .log sau .txt · maximum 10 MB</p>
+        <p id="message" class="message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="results" hidden>
+        <div class="tiles">
+            <div class="panel tile">
+                <div class="tile-label">Cereri procesate</div>
+                <div class="tile-value" id="t-parsed">0</div>
+                <div class="tile-sub">rânduri valide</div>
+            </div>
+            <div class="panel tile">
+                <div class="tile-label">Rânduri ignorate</div>
+                <div class="tile-value" id="t-skipped">0</div>
+                <div class="tile-sub">format nerecunoscut sau date invalide</div>
+            </div>
+            <div class="panel tile">
+                <div class="tile-label">Adrese unice</div>
+                <div class="tile-value" id="t-ips">0</div>
+                <div class="tile-sub">IP-uri distincte</div>
+            </div>
+            <div class="panel tile">
+                <div class="tile-label">Alerte</div>
+                <div class="tile-value" id="t-alerts">0</div>
+                <div class="tile-sub" id="t-alerts-sub"></div>
+            </div>
+        </div>
+
+        <section class="panel" aria-labelledby="alerts-title">
+            <h2 id="alerts-title" class="panel-title">Alerte</h2>
+            <div class="table-wrap">
+                <table id="alerts-table">
+                    <thead>
+                    <tr>
+                        <th scope="col">Gravitate</th>
+                        <th scope="col">Tip</th>
+                        <th scope="col">Adresă</th>
+                        <th scope="col" class="num">Evenimente</th>
+                        <th scope="col">Interval (UTC)</th>
+                        <th scope="col">Descriere</th>
+                    </tr>
+                    </thead>
+                    <tbody id="alerts-body"></tbody>
+                </table>
+            </div>
+            <p id="no-alerts" class="empty" hidden>Nicio alertă detectată.</p>
+            <p class="note">Evenimente = numărul de cereri din fereastra de vârf a regulii (nu totalul adresei).</p>
+        </section>
+
+        <div class="charts">
+            <section class="panel panel-wide" aria-labelledby="hours-title">
+                <h2 id="hours-title" class="panel-title">Cereri pe oră (UTC)</h2>
+                <div id="chart-hours"></div>
+            </section>
+            <section class="panel" aria-labelledby="status-title">
+                <h2 id="status-title" class="panel-title">Coduri de status</h2>
+                <div id="chart-status"></div>
+            </section>
+            <section class="panel" aria-labelledby="ips-title">
+                <h2 id="ips-title" class="panel-title">Top adrese</h2>
+                <div id="chart-ips"></div>
+                <p class="note">Roșu = adresă cu cel puțin o alertă.</p>
+            </section>
+        </div>
+    </section>
+</main>
+</body>
+</html>
